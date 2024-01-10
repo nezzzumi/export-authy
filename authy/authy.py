@@ -40,6 +40,12 @@ class Authy:
         self.installed_versions = self._get_installed_versions()
 
     def _get_installed_versions(self) -> List[InstalledVersion]:
+        """List versions installed in the %LOCALAPPDATA%/authy folder
+
+        Returns:
+            List[InstalledVersion]: a list of versions
+        """
+
         dirs = glob.glob("app-*", root_dir=self.authy_local_path)
 
         return [
@@ -75,9 +81,24 @@ class Authy:
                 return installed_version
 
     def _already_installed(self, version: str = "2.2.3") -> bool:
+        """Check if a specific version is installed
+
+        Args:
+            version (str): the version
+
+        Returns:
+            bool: True if is installed, otherwise False
+        """
+
         return self._get_version(version) is not None
 
     def install_authy(self, force: bool = False):
+        """Install Authy
+
+        Args:
+            force (bool, optional): force download and installation. Defaults to False.
+        """
+
         if self._already_installed() and not force:
             print("[i] authy detected, skipping installation...")
             return
@@ -121,6 +142,15 @@ class Authy:
         return output
 
     def _get_authy_websocket(self) -> str:
+        """Get the websocket of CDP
+
+        Raises:
+            AuthyNotFound: if authy is not found
+
+        Returns:
+            str: the websocket url
+        """
+
         response = requests.get("http://127.0.0.1:1337/json")
         response_json = response.json()
 
@@ -131,6 +161,15 @@ class Authy:
         raise AuthyNotFound("target not found. is the Authy open?")
 
     def _wait_for_authy(self, ws_url: str):
+        """Wait for authy to load the secrets (max 10 seconds)
+
+        Args:
+            ws_url (str): the websocket url
+
+        Raises:
+            SecretsNotFound: if zero secrets are returned from Authy
+        """
+
         tries = 1
 
         with connect(ws_url) as ws:
@@ -157,6 +196,15 @@ class Authy:
         raise SecretsNotFound("secrets didn't load or you have no secrets")
 
     def _dump_secrets(self) -> List[Secret]:
+        """Dump secrets from Authy
+
+        Raises:
+            AuthyInstallationNotFound: if Authy is not installed
+
+        Returns:
+            List[Secret]: list of secrets
+        """
+
         if not (version := self._get_version("2.2.3")):
             raise AuthyInstallationNotFound(
                 "Authy 2.2.3 is not installed. try the --install option."
