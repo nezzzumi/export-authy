@@ -51,7 +51,7 @@ try:
     elif args.dump:
         authy.print_secrets()
     elif args.revert:
-        authy._rename_updater(disable=False)
+        authy.recover_updater()
         print("[i] Update.exe has been recovered")
 except (AuthyNotFound, AuthyInstallationNotFound, SecretsNotFound) as e:
     print(f"[x] {e}")

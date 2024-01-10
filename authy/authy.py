@@ -221,3 +221,6 @@ class Authy:
             secrets_dict.append({"name": secret.name, "secret": secret.secret})
 
         print(json.dumps(secrets_dict))
+
+    def recover_updater(self):
+        self._rename_updater(disable=False)
