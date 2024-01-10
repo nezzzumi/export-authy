@@ -1,5 +1,5 @@
 import sys
-from authy import Authy
+from authy import Authy, AuthyInstallationNotFound, AuthyNotFound, SecretsNotFound
 import argparse
 
 
@@ -41,9 +41,12 @@ if not (args.install or args.export or args.dump):
 
 authy = Authy()
 
-if args.install:
-    authy.install_authy(force=args.force)
-elif args.export:
-    authy.export()
-elif args.dump:
-    authy.print_secrets()
+try:
+    if args.install:
+        authy.install_authy(force=args.force)
+    elif args.export:
+        authy.export()
+    elif args.dump:
+        authy.print_secrets()
+except (AuthyNotFound, AuthyInstallationNotFound, SecretsNotFound) as e:
+    print(f"[x] {e}")

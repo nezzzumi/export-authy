@@ -10,6 +10,8 @@ from typing import List
 import requests
 from websockets.sync.client import connect
 
+from .exceptions import AuthyInstallationNotFound, AuthyNotFound, SecretsNotFound
+
 
 @dataclass
 class Secret:
@@ -31,7 +33,7 @@ class Authy:
         local_path = os.getenv("LOCALAPPDATA")
 
         if not local_path:
-            raise Exception("LOCALAPPDATA not found.")
+            raise EnvironmentError("LOCALAPPDATA not found.")
 
         self.authy_local_path = os.path.join(local_path, "authy")
         self.installed_versions = self._get_installed_versions()
@@ -125,7 +127,7 @@ class Authy:
             if target["url"].endswith("/app.asar/main.html"):
                 return target["webSocketDebuggerUrl"]
 
-        raise Exception("Target not found. Is the Authy open?")
+        raise AuthyNotFound("target not found. is the Authy open?")
 
     def _wait_for_authy(self, ws_url: str):
         tries = 1
@@ -151,11 +153,19 @@ class Authy:
 
                 time.sleep(1)
 
-        raise Exception("secrets didn't load or you have no secrets")
+        raise SecretsNotFound("secrets didn't load or you have no secrets")
 
     def _dump_secrets(self) -> List[Secret]:
         if not (version := self._get_version("2.2.3")):
-            raise Exception("Authy 2.2.3 is not installed. Try the --install option.")
+            raise AuthyInstallationNotFound(
+                "Authy 2.2.3 is not installed. try the --install option."
+            )
+
+        subprocess.run(
+            ["taskkill.exe", "/f", "/im", "Authy Desktop.exe"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
         process = subprocess.Popen(
             [
