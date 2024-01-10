@@ -17,6 +17,7 @@ from .exceptions import AuthyInstallationNotFound, AuthyNotFound, SecretsNotFoun
 class Secret:
     name: str
     secret: str
+    period: int
 
 
 @dataclass
@@ -185,7 +186,7 @@ class Authy:
                 "id": 1,
                 "method": "Runtime.evaluate",
                 "params": {
-                    "expression": "function hex_to_b32(e){let t='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',r=[];for(let n=0;n<e.length;n+=2)r.push(parseInt(e.substr(n,2),16));let d=0,o=0,s='';for(let u=0;u<r.length;u++)for(o=o<<8|r[u],d+=8;d>=5;)s+=t[o>>>d-5&31],d-=5;return d>0&&(s+=t[o<<5-d&31]),s}function dump_secrets(){let e=[];return appManager.getModel().map(function(t){var r=t.secretSeed;void 0===r&&(r=t.encryptedSeed);var n=!1===t.markedForDeletion?t.decryptedSeed:hex_to_b32(r);t.digits,e.push({name:t.name,secret:n})}),JSON.stringify(e)}dump_secrets();"  # noqa
+                    "expression": "function hex_to_b32(e){let t='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',r=[];for(let n=0;n<e.length;n+=2)r.push(parseInt(e.substr(n,2),16));let d=0,o=0,s='';for(let u=0;u<r.length;u++)for(o=o<<8|r[u],d+=8;d>=5;)s+=t[o>>>d-5&31],d-=5;return d>0&&(s+=t[o<<5-d&31]),s}function dump_secrets(){let e=[];return appManager.getModel().map(function(t){var r=t.secretSeed;void 0===r&&(r=t.encryptedSeed);var n=!1===t.markedForDeletion?t.decryptedSeed:hex_to_b32(r),d=7===t.digits?10:30;e.push({name:t.name,secret:n,period:d})}),JSON.stringify(e)}dump_secrets();"  # noqa
                 },
             }
 
@@ -197,7 +198,11 @@ class Authy:
 
             for secret in secrets_json:
                 secrets.append(
-                    Secret(name=secret.get("name"), secret=secret.get("secret"))
+                    Secret(
+                        name=secret.get("name"),
+                        secret=secret.get("secret"),
+                        period=secret.get("period"),
+                    )
                 )
 
         process.kill()
@@ -210,15 +215,11 @@ class Authy:
         for secret in secrets:
             print(f"Name: {secret.name}")
             print(f"Secret: {secret.secret}")
+            print(f"Period: {secret.period}")
             print()
 
     def export(self):
-        secrets = self._dump_secrets()
-
-        secrets_dict = []
-
-        for secret in secrets:
-            secrets_dict.append({"name": secret.name, "secret": secret.secret})
+        secrets_dict = [secret.__dict__ for secret in self._dump_secrets()]
 
         print(json.dumps(secrets_dict))
 
