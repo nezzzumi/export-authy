@@ -1,6 +1,6 @@
 ## Export secrets from Authy
 
-This script automate the process of dumping secrets from Authy.
+This script automates the process of dumping secrets from Authy.
 
 It's useful for import them into another 2FA app.
 
