@@ -11,10 +11,6 @@
             "program": "export-authy.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": [
-                "-i",
-                "-f"
-            ]
         }
     ]
 }

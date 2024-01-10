@@ -26,7 +26,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if not args.install or args.export:
+if not (args.install or args.export):
     parser.print_help()
     exit()
 
@@ -35,4 +35,4 @@ authy = Authy()
 if args.install:
     authy.install_authy(force=args.force)
 elif args.export:
-    ...
+    authy.export()
