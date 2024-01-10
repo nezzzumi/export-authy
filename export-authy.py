@@ -4,7 +4,8 @@ import argparse
 
 
 parser = argparse.ArgumentParser(prog=sys.argv[0])
-option_group = parser.add_mutually_exclusive_group()
+
+option_group = parser.add_mutually_exclusive_group(required=True)
 option_group.add_argument(
     "-i",
     "--install",
@@ -18,7 +19,6 @@ parser.add_argument(
     action="store_true",
     default=False,
 )
-
 option_group.add_argument(
     "-e",
     "--export",
@@ -30,14 +30,16 @@ option_group.add_argument(
     "--dump",
     help="dump secrets to stdout",
     action="store_true",
-    default=True,
+)
+option_group.add_argument(
+    "-r",
+    "--revert",
+    help="re-enable the updater",
+    action="store_true",
 )
 
 args = parser.parse_args()
 
-if not (args.install or args.export or args.dump):
-    parser.print_help()
-    exit()
 
 authy = Authy()
 
@@ -48,5 +50,8 @@ try:
         authy.export()
     elif args.dump:
         authy.print_secrets()
+    elif args.revert:
+        authy._rename_updater(disable=False)
+        print("[i] Update.exe has been recovered")
 except (AuthyNotFound, AuthyInstallationNotFound, SecretsNotFound) as e:
     print(f"[x] {e}")
