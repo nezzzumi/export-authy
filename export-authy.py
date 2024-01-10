@@ -1,7 +1,7 @@
-import sys
-from authy import Authy, AuthyInstallationNotFound, AuthyNotFound, SecretsNotFound
 import argparse
+import sys
 
+from authy import Authy, AuthyInstallationNotFound, AuthyNotFound, SecretsNotFound
 
 parser = argparse.ArgumentParser(prog=sys.argv[0])
 

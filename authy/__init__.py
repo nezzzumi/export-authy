@@ -1,1 +1,1 @@
-from .authy import Authy, SecretsNotFound, AuthyInstallationNotFound, AuthyNotFound
+from .authy import Authy, AuthyInstallationNotFound, AuthyNotFound, SecretsNotFound
