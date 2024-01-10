@@ -38,7 +38,7 @@ Use the `--install` flag for this.
 
 > When you open Authy, an auto-updater is opened in the background. To prevent the update, the script renames the updater in the Authy folder. To revert this operation, use the `--revert` option, or install a newest version of Authy.
 
-You can now export/dump your secrets with the `-export` or `-dump` option.
+You can now export/dump your secrets with the `--export` or `--dump` option.
 
     python export-authy.py -d
 
