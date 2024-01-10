@@ -15,7 +15,7 @@ option_group.add_argument(
 parser.add_argument(
     "-f",
     "--force",
-    help="force download and installation",
+    help="forces download and installation",
     action="store_true",
     default=False,
 )
