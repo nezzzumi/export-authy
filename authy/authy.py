@@ -53,7 +53,7 @@ class Authy:
 
     def install_authy(self, force: bool = False):
         if self._already_installed() and not force:
-            print("[i] authy detected, skiping installation...")
+            print("[i] authy detected, skipping installation...")
             return
 
         print("[i] downloading authy 2.2.3...")
