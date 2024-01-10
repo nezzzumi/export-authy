@@ -1,3 +1,4 @@
+import re
 import glob
 import json
 import os
@@ -11,6 +12,12 @@ from websockets.sync.client import connect
 
 
 @dataclass
+class Secret:
+    name: str
+    secret: str
+
+
+@dataclass
 class InstalledVersion:
     version: str
     path: str
@@ -21,47 +28,72 @@ class Authy:
     EXECUTABLE: str = "Authy Desktop.exe"
 
     def __init__(self) -> None:
-        self.installed_versions = self._get_installed_versions()
-
-    def _get_installed_versions(self) -> List[InstalledVersion]:
         local_path = os.getenv("LOCALAPPDATA")
 
         if not local_path:
             raise Exception("LOCALAPPDATA not found.")
 
-        local_authy_path = os.path.join(local_path, "authy")
+        self.authy_local_path = os.path.join(local_path, "authy")
+        self.installed_versions = self._get_installed_versions()
 
-        dirs = glob.glob("app-*", root_dir=local_authy_path)
+    def _get_installed_versions(self) -> List[InstalledVersion]:
+        dirs = glob.glob("app-*", root_dir=self.authy_local_path)
 
         return [
             InstalledVersion(
-                version=d.removeprefix("app-"), path=os.path.join(local_authy_path, d)
+                version=d.removeprefix("app-"),
+                path=os.path.join(self.authy_local_path, d),
             )
             for d in dirs
         ]
 
-    def get_version(self, version: str) -> InstalledVersion | None:
+    def _rename_updater(self, disable: bool):
+        """After the installation, the Authy will perform an auto-udpdate.
+        This method disables the updater
+
+        Args:
+            disable (bool): disable or enable the updater
+        """
+
+        src_exe = "Update.exe" if disable else "Update.exe.old"
+        dst_exe = "Update.exe.old" if disable else "Update.exe"
+
+        src = os.path.join(self.authy_local_path, src_exe)
+        dst = os.path.join(self.authy_local_path, dst_exe)
+
+        if not os.path.exists(src):
+            return
+
+        os.rename(src, dst)
+
+    def _get_version(self, version: str) -> InstalledVersion | None:
         for installed_version in self.installed_versions:
             if installed_version.version == version:
                 return installed_version
 
     def _already_installed(self, version: str = "2.2.3") -> bool:
-        if self.get_version(version):
-            return True
-
-        return False
+        return self._get_version(version) is not None
 
     def install_authy(self, force: bool = False):
         if self._already_installed() and not force:
             print("[i] authy detected, skipping installation...")
             return
 
-        print("[i] downloading authy 2.2.3...")
-        installer_path = self._download_authy()
-        print("[i] opening authy")
-        # TODO: add a subprocess popen and delete new installations when the user close Authy
+        installer_path = os.path.join(self.OUTPUT_DIR, "authy_2.2.3.exe")
+
+        if os.path.exists(installer_path):
+            print("[i] installer detected. use -f to overwrite it.")
+        else:
+            print("[i] downloading authy 2.2.3...")
+            installer_path = self._download_authy()
+
+        print("[i] installing authy")
         os.system(installer_path)
-        print("[+] please log in your account and unlock your secrets")
+        self._rename_updater(disable=True)
+
+        print(
+            "[+] please log in your account and unlock your secrets. after that, run the script again with the -e or -d option"
+        )
 
     def _download_authy(self, force: bool = False) -> str:
         """Download a specific version of Authy (2.2.3)
@@ -81,7 +113,7 @@ class Authy:
 
         if not os.path.exists(output) or force:
             with open(output, "wb") as file:
-                file.write(response.content)
+                file.write(response.content)  # type: ignore
 
         return output
 
@@ -99,6 +131,7 @@ class Authy:
         tries = 1
 
         with connect(ws_url) as ws:
+            print("[i] waiting for authy...")
             while tries < 10:
                 payload = {
                     "id": 1,
@@ -108,8 +141,10 @@ class Authy:
 
                 ws.send(json.dumps(payload))
                 result = json.loads(ws.recv())
+                result_description = result["result"]["result"]["description"]
 
-                if result["result"]["result"]["description"] != "Array(0)":
+                if re.search(r"Array\([1-9]*\)", result_description):
+                    print("[*] secrets loaded\n")
                     return
 
                 tries += 1
@@ -118,8 +153,8 @@ class Authy:
 
         raise Exception("secrets didn't load or you have no secrets")
 
-    def export(self):
-        if not (version := self.get_version("2.2.3")):
+    def _dump_secrets(self) -> List[Secret]:
+        if not (version := self._get_version("2.2.3")):
             raise Exception("Authy 2.2.3 is not installed. Try the --install option.")
 
         process = subprocess.Popen(
@@ -147,8 +182,32 @@ class Authy:
             ws.send(json.dumps(payload))
             result = json.loads(ws.recv())
 
-            secrets = json.loads(result["result"]["result"]["value"])
-            # TODO: improve the output
-            print(secrets)
+            secrets_json = json.loads(result["result"]["result"]["value"])
+            secrets = []
+
+            for secret in secrets_json:
+                secrets.append(
+                    Secret(name=secret.get("name"), secret=secret.get("secret"))
+                )
 
         process.kill()
+
+        return secrets
+
+    def print_secrets(self):
+        secrets = self._dump_secrets()
+
+        for secret in secrets:
+            print(f"Name: {secret.name}")
+            print(f"Secret: {secret.secret}")
+            print()
+
+    def export(self):
+        secrets = self._dump_secrets()
+
+        secrets_dict = []
+
+        for secret in secrets:
+            secrets_dict.append({"name": secret.name, "secret": secret.secret})
+
+        print(json.dumps(secrets_dict))
