@@ -59,7 +59,9 @@ class Authy:
         print("[i] downloading authy 2.2.3...")
         installer_path = self._download_authy()
         print("[i] opening authy")
+        # TODO: add a subprocess popen and delete new installations when the user close Authy
         os.system(installer_path)
+        print("[+] please log in your account and unlock your secrets")
 
     def _download_authy(self, force: bool = False) -> str:
         """Download a specific version of Authy (2.2.3)
